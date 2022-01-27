@@ -9,7 +9,7 @@ impl<'a, T, F> Parser<'a, T> for F where F: Fn(&'a str) -> Result<ParsingResult<
 {}
 // 上記2行の定義によりトレイト`Parser<'a, T>`とトレイト`Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason>`は等価になる
 
-pub fn digit<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
+pub fn single_digit<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
     // 2文字目の先頭バイトのインデックス
     let boundary = s.char_indices().nth(1).map(|(i, _)| i).unwrap_or(s.len());
 
@@ -55,43 +55,43 @@ pub fn character<'a>(c: char) -> impl Parser<'a, ()> {
 mod tests {
     use crate::{
         common::ParsingResult,
-        parsers::{character, digit, digits},
+        parsers::{character, digits, single_digit},
     };
 
     #[test]
     fn digit_true() {
         assert_eq!(
-            digit("123"),
+            single_digit("123"),
             Ok(ParsingResult {
                 first: 1,
                 rest: "23"
             })
         );
         assert_eq!(
-            digit("2Abcd"),
+            single_digit("2Abcd"),
             Ok(ParsingResult {
                 first: 2,
                 rest: "Abcd"
             })
         );
-        assert_eq!(digit("9"), Ok(ParsingResult { first: 9, rest: "" }));
-        assert_eq!(digit("0"), Ok(ParsingResult { first: 0, rest: "" }));
+        assert_eq!(single_digit("9"), Ok(ParsingResult { first: 9, rest: "" }));
+        assert_eq!(single_digit("0"), Ok(ParsingResult { first: 0, rest: "" }));
         assert_eq!(
-            digit("85"),
+            single_digit("85"),
             Ok(ParsingResult {
                 first: 8,
                 rest: "5"
             })
         );
         assert_eq!(
-            digit("5漢字"),
+            single_digit("5漢字"),
             Ok(ParsingResult {
                 first: 5,
                 rest: "漢字"
             })
         );
         assert_eq!(
-            digit("4\u{1f363}"),
+            single_digit("4\u{1f363}"),
             Ok(ParsingResult {
                 first: 4,
                 rest: "\u{1f363}"
@@ -101,15 +101,15 @@ mod tests {
 
     #[test]
     fn digit_false() {
-        assert!(digit("abcd").is_err());
-        assert!(digit("A").is_err());
-        assert!(digit("").is_err());
-        assert!(digit("        123").is_err());
-        assert!(digit("abc123").is_err());
-        assert!(digit("漢字").is_err());
-        assert!(digit("\u{1f363}").is_err());
-        assert!(digit("f").is_err());
-        assert!(digit("IV").is_err());
+        assert!(single_digit("abcd").is_err());
+        assert!(single_digit("A").is_err());
+        assert!(single_digit("").is_err());
+        assert!(single_digit("        123").is_err());
+        assert!(single_digit("abc123").is_err());
+        assert!(single_digit("漢字").is_err());
+        assert!(single_digit("\u{1f363}").is_err());
+        assert!(single_digit("f").is_err());
+        assert!(single_digit("IV").is_err());
     }
 
     #[test]
