@@ -66,6 +66,7 @@ mod tests {
             })
         );
         assert_eq!(digit("9"), Ok(ParsingResult { first: 9, rest: "" }));
+        assert_eq!(digit("0"), Ok(ParsingResult { first: 0, rest: "" }));
         assert_eq!(
             digit("85"),
             Ok(ParsingResult {
@@ -95,8 +96,11 @@ mod tests {
         assert!(digit("A").is_err());
         assert!(digit("").is_err());
         assert!(digit("        123").is_err());
+        assert!(digit("abc123").is_err());
         assert!(digit("漢字").is_err());
         assert!(digit("\u{1f363}").is_err());
+        assert!(digit("f").is_err());
+        assert!(digit("IV").is_err());
     }
 
     #[test]
@@ -118,6 +122,7 @@ mod tests {
         );
         assert!(parser("Banana").is_err());
         assert!(parser("abcd").is_err());
+        assert!(parser("BBBBa").is_err());
         assert!(parser("        A").is_err());
         assert!(parser("").is_err());
     }
