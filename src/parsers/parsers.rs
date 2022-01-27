@@ -14,6 +14,20 @@ pub fn digit<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
     }
 }
 
+pub fn digits<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
+    // 数字ではない最初の文字のインデックス
+    let boundary = s.find(|c: char| !c.is_ascii_digit()).unwrap_or(s.len());
+
+    if let Ok(value) = s[..boundary].parse() {
+        Ok(ParsingResult {
+            first: value,
+            rest: &s[boundary..],
+        })
+    } else {
+        Err(DenialReason::Deny)
+    }
+}
+
 pub fn character<'a>(c: char) -> impl Fn(&'a str) -> Result<ParsingResult<'a, ()>, DenialReason> {
     move |s| {
         let mut chars = s.chars();
@@ -32,7 +46,7 @@ pub fn character<'a>(c: char) -> impl Fn(&'a str) -> Result<ParsingResult<'a, ()
 mod tests {
     use crate::{
         common::ParsingResult,
-        parsers::{character, digit},
+        parsers::{character, digit, digits},
     };
 
     #[test]
@@ -148,5 +162,63 @@ mod tests {
             })
         );
         assert!(parser("\u{1f364}エビフライ").is_err());
+    }
+
+    #[test]
+    fn digits_true() {
+        assert_eq!(
+            digits("123"),
+            Ok(ParsingResult {
+                first: 123,
+                rest: ""
+            })
+        );
+        assert_eq!(
+            digits("456abc"),
+            Ok(ParsingResult {
+                first: 456,
+                rest: "abc"
+            })
+        );
+        assert_eq!(digits("7"), Ok(ParsingResult { first: 7, rest: "" }));
+        assert_eq!(
+            digits("12ab3"),
+            Ok(ParsingResult {
+                first: 12,
+                rest: "ab3"
+            })
+        );
+        assert_eq!(
+            digits("12.3"),
+            Ok(ParsingResult {
+                first: 12,
+                rest: ".3"
+            })
+        );
+        assert_eq!(
+            digits("0x12ff"),
+            Ok(ParsingResult {
+                first: 0,
+                rest: "x12ff"
+            })
+        );
+        assert_eq!(
+            digits("010"),
+            Ok(ParsingResult {
+                first: 10,
+                rest: ""
+            })
+        );
+    }
+
+    #[test]
+    fn digits_false() {
+        assert!(digits("-123").is_err());
+        assert!(digits("EF01").is_err());
+        assert!(digits("IV").is_err());
+        assert!(digits("五").is_err());
+        assert!(digits("      123").is_err());
+        assert!(digits("").is_err());
+        assert!(digits("abc").is_err());
     }
 }
