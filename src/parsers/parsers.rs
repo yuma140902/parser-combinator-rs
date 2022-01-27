@@ -1,5 +1,14 @@
 use crate::common::{DenialReason, ParsingResult};
 
+// トレイト`Parser<'a, T>`を実装する型はトレイト`Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason>`を必ず実装する
+// すなわち`Parser...`ならば`Fn...`
+pub trait Parser<'a, T>: Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason> {}
+// トレイト`Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason>`を実装するすべての型Fに対してトレイト`Parser<'a, T>`を実装する
+// すなわち`Fn...`ならば`Parser...`
+impl<'a, T, F> Parser<'a, T> for F where F: Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason>
+{}
+// 上記2行の定義によりトレイト`Parser<'a, T>`とトレイト`Fn(&'a str) -> Result<ParsingResult<'a, T>, DenialReason>`は等価になる
+
 pub fn digit<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
     // 2文字目の先頭バイトのインデックス
     let boundary = s.char_indices().nth(1).map(|(i, _)| i).unwrap_or(s.len());
@@ -28,8 +37,8 @@ pub fn digits<'a>(s: &'a str) -> Result<ParsingResult<'a, i32>, DenialReason> {
     }
 }
 
-pub fn character<'a>(c: char) -> impl Fn(&'a str) -> Result<ParsingResult<'a, ()>, DenialReason> {
-    move |s| {
+pub fn character<'a>(c: char) -> impl Parser<'a, ()> {
+    move |s: &'a str| {
         let mut chars = s.chars();
         if chars.next() == Some(c) {
             Ok(ParsingResult {
