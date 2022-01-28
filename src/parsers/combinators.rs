@@ -1,3 +1,5 @@
+use crate::common::ParsingResult;
+
 use super::Parser;
 
 /// パーサを受け取り、先頭の空白を無視するパーサを返す
@@ -5,6 +7,16 @@ use super::Parser;
 /// 空白とは、UnicodeのWhite_Spaceのこと
 pub fn lexeme<'a, T>(parser: impl Parser<'a, T>) -> impl Parser<'a, T> {
     move |s: &'a str| parser(s.trim_start())
+}
+
+/// パース結果に関数を適用するパーサ
+pub fn map<'a, T, S>(parser: impl Parser<'a, T>, f: impl Fn(T) -> S) -> impl Parser<'a, S> {
+    move |s: &'a str| {
+        parser(s).map(|ParsingResult { first, rest }| ParsingResult {
+            first: f(first),
+            rest,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -78,5 +90,18 @@ mod tests {
 
         assert!(parser("\0123").is_err());
         assert!(parser(".123").is_err());
+    }
+
+    #[test]
+    fn map_true() {
+        let parser = map(digits, |x| x + 1);
+
+        assert_eq!(
+            parser("123"),
+            Ok(ParsingResult {
+                first: 124,
+                rest: ""
+            })
+        );
     }
 }
