@@ -51,12 +51,24 @@ pub fn character<'a>(c: char) -> impl Parser<'a, ()> {
     }
 }
 
+pub fn string<'a>(criteria: &'a str) -> impl Parser<'a, ()> {
+    move |s: &'a str| {
+        if let Some(rest) = s.strip_prefix(criteria) {
+            Ok(ParsingResult { first: (), rest })
+        } else {
+            Err(DenialReason::Deny)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         common::ParsingResult,
         parsers::{character, digits, single_digit},
     };
+
+    use super::string;
 
     #[test]
     fn digit_true() {
@@ -234,5 +246,43 @@ mod tests {
         assert!(digits("      123").is_err());
         assert!(digits("").is_err());
         assert!(digits("abc").is_err());
+    }
+
+    #[test]
+    fn string_true() {
+        let parser = string("abc");
+
+        assert_eq!(
+            parser("abc"),
+            Ok(ParsingResult {
+                first: (),
+                rest: ""
+            })
+        );
+        assert_eq!(
+            parser("abcdef"),
+            Ok(ParsingResult {
+                first: (),
+                rest: "def"
+            })
+        );
+        assert_eq!(
+            parser("abcabc"),
+            Ok(ParsingResult {
+                first: (),
+                rest: "abc"
+            })
+        );
+    }
+
+    #[test]
+    fn string_false() {
+        let parser = string("abc");
+
+        assert!(parser("ABC").is_err());
+        assert!(parser("  abc").is_err());
+        assert!(parser("foobar").is_err());
+        assert!(parser("defabc").is_err());
+        assert!(parser("").is_err());
     }
 }
